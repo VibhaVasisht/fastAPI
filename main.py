@@ -1,6 +1,6 @@
 """
 modes:
-oauth
+noauth
 basic
 oauth2
 oauth1
