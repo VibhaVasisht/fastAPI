@@ -1,1 +1,1 @@
-web: python main.py noauth
+web: python main.py basic
