@@ -32,8 +32,8 @@ assert MODE in ("noauth", "basic", "oauth2", "oauth1"), f"Unknown mode: {MODE}"
 import os
 GITHUB_CLIENT_ID     = os.environ.get("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
-TRELLO_API_KEY       = os.environ.get("TRELLO_API_KEY", "")
-TRELLO_API_SECRET    = os.environ.get("TRELLO_API_SECRET", "")
+TUMBLR_API_KEY       = os.environ.get("TUMBLR_API_KEY", "")
+TUMBLR_API_SECRET    = os.environ.get("TUMBLR_API_SECRET", "")
 
 BASIC_USER = "admin"
 BASIC_PASS = "secret"
@@ -45,8 +45,8 @@ class Item(BaseModel):
     description: str
 
 db: dict[int, Item] = {
-    1: Item(name="Widget", description="A useful widget"),
-    2: Item(name="Gadget", description="A cool gadget"),
+    1: Item(name="Bag", description="Blue"),
+    2: Item(name="Bottle", description="Metal"),
 }
 next_id = 3
 
@@ -164,10 +164,9 @@ async def github_callback(code: str, state: str):
     oauth2_tokens[access_token] = "github_user"
     return {"bearer_token": access_token, "usage": "Add as: Authorization: Bearer <token>"}
 
-# OAuth 1 (Trello)
+# OAuth 1 (Tumblr)
 
 def _parse_oauth_header(header: str) -> dict:
-    """Parse 'OAuth key="val", ...' into a dict."""
     result = {}
     for part in header.replace("OAuth ", "").split(","):
         part = part.strip()
@@ -191,31 +190,31 @@ def _oauth1_signature(method, url, params: dict, consumer_secret: str, token_sec
 
 from requests_oauthlib import OAuth1Session
 
-@app.get("/auth/trello/login")
-async def trello_login():
-    callback = "http://localhost:8000/auth/trello/callback"
-    oauth = OAuth1Session(TRELLO_API_KEY, client_secret=TRELLO_API_SECRET, callback_uri=callback)
+@app.get("/auth/tumblr/login")
+async def tumblr_login():
+    callback = "https://oauth1-d59v.onrender.com/auth/tumblr/callback"
+    oauth = OAuth1Session(TUMBLR_API_KEY, client_secret=TUMBLR_API_SECRET, callback_uri=callback)
     r = oauth.fetch_request_token("https://trello.com/1/OAuthGetRequestToken")
     oauth1_request_tokens[r["oauth_token"]] = r["oauth_token_secret"]
-    url = oauth.authorization_url("https://trello.com/1/OAuthAuthorizeToken")
+    url = oauth.authorization_url("https://www.tumblr.com/oauth/authorize")
     return RedirectResponse(url)
 
-@app.get("/auth/trello/callback")
-async def trello_callback(oauth_token: str, oauth_verifier: str):
+@app.get("/auth/tumblr/callback")
+async def tumblr_callback(oauth_token: str, oauth_verifier: str):
     req_secret = oauth1_request_tokens.pop(oauth_token, None)
     if not req_secret:
         raise HTTPException(400, "Unknown request token")
-    oauth = OAuth1Session(TRELLO_API_KEY, client_secret=TRELLO_API_SECRET,
+    oauth = OAuth1Session(TUMBLR_API_KEY, client_secret=TUMBLR_API_SECRET,
                           resource_owner_key=oauth_token,
                           resource_owner_secret=req_secret,
                           verifier=oauth_verifier)
-    r = oauth.fetch_access_token("https://trello.com/1/OAuthGetAccessToken")
+    r = oauth.fetch_access_token("https://www.tumblr.com/oauth/access_token")
     oauth1_tokens[r["oauth_token"]] = r["oauth_token_secret"]
     return {"oauth_token": r["oauth_token"], "oauth_token_secret": r["oauth_token_secret"]}
 
-    url = "https://trello.com/1/OAuthGetAccessToken"
+    url = "https://www.tumblr.com/oauth/access_token"
     params = {
-        "oauth_consumer_key": TRELLO_API_KEY,
+        "oauth_consumer_key": TUMBLR_API_KEY,
         "oauth_token": oauth_token,
         "oauth_verifier": oauth_verifier,
         "oauth_nonce": secrets.token_hex(8),
@@ -223,7 +222,7 @@ async def trello_callback(oauth_token: str, oauth_verifier: str):
         "oauth_timestamp": str(int(time.time())),
         "oauth_version": "1.0",
     }
-    params["oauth_signature"] = _oauth1_signature("GET", url, params, TRELLO_API_SECRET, req_secret)
+    params["oauth_signature"] = _oauth1_signature("GET", url, params, TUMBLR_API_SECRET, req_secret)
 
     header = "OAuth " + ", ".join(f'{k}="{v}"' for k, v in params.items())
     async with httpx.AsyncClient() as client:
@@ -233,7 +232,7 @@ async def trello_callback(oauth_token: str, oauth_verifier: str):
     access_token  = parsed.get("oauth_token")
     access_secret = parsed.get("oauth_token_secret")
     if not access_token:
-        raise HTTPException(400, f"Trello error: {r.text}")
+        raise HTTPException(400, f"Tumblr error: {r.text}")
 
     oauth1_tokens[access_token] = access_secret
     return {
