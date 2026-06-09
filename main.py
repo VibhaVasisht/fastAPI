@@ -194,7 +194,7 @@ from requests_oauthlib import OAuth1Session
 async def tumblr_login():
     callback = "https://oauth1-d59v.onrender.com/auth/tumblr/callback"
     oauth = OAuth1Session(TUMBLR_API_KEY, client_secret=TUMBLR_API_SECRET, callback_uri=callback)
-    r = oauth.fetch_request_token("https://trello.com/1/OAuthGetRequestToken")
+    r = oauth.fetch_request_token("https://www.tumblr.com/oauth/request_token")
     oauth1_request_tokens[r["oauth_token"]] = r["oauth_token_secret"]
     url = oauth.authorization_url("https://www.tumblr.com/oauth/authorize")
     return RedirectResponse(url)
@@ -238,19 +238,10 @@ async def tumblr_callback(oauth_token: str, oauth_verifier: str):
     return {
         "oauth_token": access_token,
         "oauth_token_secret": access_secret,
-        "usage": "Build the Authorization header in Postman using OAuth 1.0 with these credentials.",
     }
 
 # Entry point
 
 if __name__ == "__main__":
     print(f"\n   Mode: {MODE}")
-    if MODE == "oauth2":
-        print("   1. Open http://localhost:8000/auth/github/login in your browser")
-        print("   2. Copy the bearer_token from the callback JSON")
-        print("   3. Use it in Postman: Authorization → Bearer Token\n")
-    if MODE == "oauth1":
-        print("   1. Open http://localhost:8000/auth/trello/login in your browser")
-        print("   2. Copy oauth_token + oauth_token_secret from the callback JSON")
-        print("   3. Use them in Postman: Authorization → OAuth 1.0\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)
