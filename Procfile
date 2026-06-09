@@ -1,1 +1,1 @@
-web: python main.py oauth1
+web: python main.py oauth2
