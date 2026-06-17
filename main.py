@@ -6,13 +6,20 @@ oauth2
 oauth1
 """
 
+from requests import Response
 import sys
 import secrets
 import base64
 import hashlib
 import hmac
 import time
-import urllib.parse         
+import urllib.parse
+from contextlib import asynccontextmanager
+from typing import Generator
+# pyrefly: ignore [missing-import]
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+# pyrefly: ignore [missing-import]
+from sqlalchemy.pool import StaticPool         
 from fastapi import FastAPI, HTTPException, Depends, Request
 # pyrefly: ignore [missing-import]
 from fastapi.responses import RedirectResponse
@@ -40,19 +47,26 @@ BASIC_PASS = "secret"
 
 # Mock DB 
 
-class Item(BaseModel):
+class Details(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     name: str
-    description: str
+    email: str | None = None
 
-db: dict[int, Item] = {
-    1: Item(name="Bag", description="Blue"),
-    2: Item(name="Bottle", description="Metal"),
-}
-next_id = 3
+DATABASE_URL = "sqlite://"
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize schema structures in memory
+    SQLModel.metadata.create_all(engine)
+    yield
 
 # App 
 
-app = FastAPI(title=f"Auth Test [{MODE}]")
+app = FastAPI(title=f"Auth Test [{MODE}]", lifespan=lifespan)
 
 # Auth dependencies
 
@@ -99,38 +113,67 @@ AUTH = {
 
 # CRUD routes
 
-@app.get("/items")
+@app.get("/details", response_model = list[Details])
 def list_items(_=Depends(AUTH)):
-    return db
+    with Session(engine) as sess:
+        return sess.exec(select(Details)).all()
 
-@app.post("/items", status_code=201)
-def create_item(item: Item, _=Depends(AUTH)):
-    global next_id
-    db[next_id] = item
-    nid = next_id; next_id += 1
-    return {"id": nid, **item.model_dump()}
+@app.post("/details", status_code=201, response_model = Details)
+def create_item(item: Details, _=Depends(AUTH)):
+    with Session(engine) as sess:
+        sess.add(item)
+        sess.commit()
+        sess.refresh(item)
+        return item
 
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item, _=Depends(AUTH)):
-    if item_id not in db:
-        raise HTTPException(404, "Not found")
-    db[item_id] = item
-    return {"id": item_id, **item.model_dump()}
+@app.put("/details/{details_id}", response_model=Details)
+def update_item(details_id: int, item: Details, _=Depends(AUTH)):
+    with Session(engine) as sess:
+        existing = sess.get(Details, details_id)
+        if not existing:
+            raise HTTPException(404, "Not found")
+        existing.name = item.name
+        existing.email = item.email
+        sess.add(existing)
+        sess.commit()
+        sess.refresh(existing)
+        return existing
 
-@app.delete("/items/{item_id}")
-def delete_item(item_id: int, _=Depends(AUTH)):
-    if item_id not in db:
-        raise HTTPException(404, "Not found")
-    del db[item_id]
-    return {"deleted": item_id}
+@app.patch("/details/{details_id}", response_model=Details)
+def partial_update_item(details_id: int, item: Details, _=Depends(AUTH)):
+    with Session(engine) as sess:
+        existing = sess.get(Details, details_id)
+        if not existing:
+            raise HTTPException(404, "Not found")
+        update_data = item.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(existing, key, value)
+        sess.add(existing)
+        sess.commit()
+        sess.refresh(existing)
+        return existing
 
-@app.head("/items")
+@app.delete("/details/{details_id}")
+def delete_item(details_id: int, _=Depends(AUTH)):
+    with Session(engine) as sess:
+        existing = sess.get(Details, details_id)
+        if not existing:
+            raise HTTPException(404, "Not found")
+        sess.delete(existing)
+        sess.commit()
+        return {"deleted": details_id}
+
+@app.head("/details")
 def head_items(_=Depends(AUTH)):
-    return {}  
+    response = Response()
+    response.headers["ETag"] = "User Details"
+    return response
 
-@app.options("/items")
+@app.options("/details")
 def options_items(_=Depends(AUTH)):
-    return {"allow": "GET,POST,PUT,DELETE,HEAD,OPTIONS"}
+    response = Response()
+    response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
+    return response
 
 # OAuth 2 (GitHub)
 
@@ -240,7 +283,6 @@ async def tumblr_callback(oauth_token: str, oauth_verifier: str):
         "oauth_token_secret": access_secret,
     }
 
-# Entry point
 
 if __name__ == "__main__":
     print(f"\n   Mode: {MODE}")
