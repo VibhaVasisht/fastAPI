@@ -6,6 +6,8 @@ oauth2
 oauth1
 """
 
+from requests import status_codes
+from requests import session
 from requests import Response
 import sys
 import secrets
@@ -166,12 +168,14 @@ def delete_item(details_id: int, _=Depends(AUTH)):
 @app.head("/details")
 def head_items(_=Depends(AUTH)):
     response = Response()
+    response.status_code = status_codes.ok
     response.headers["ETag"] = "User Details"
     return response
 
 @app.options("/details")
 def options_items(_=Depends(AUTH)):
     response = Response()
+    response.status_code = status_codes.ok
     response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
     return response
 
