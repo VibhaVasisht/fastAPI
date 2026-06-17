@@ -4,6 +4,4 @@ httpx
 pydantic
 requests-oauthlib
 sqlmodel
-sqlalchemy.pool
-contextlib
 sys
