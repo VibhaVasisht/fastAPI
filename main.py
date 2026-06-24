@@ -24,6 +24,8 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 from sqlalchemy.pool import StaticPool         
 from fastapi import FastAPI, HTTPException, Depends, Request
 # pyrefly: ignore [missing-import]
+from fastapi import Response as res
+# pyrefly: ignore [missing-import]
 from fastapi.responses import RedirectResponse
 # pyrefly: ignore [missing-import]
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2AuthorizationCodeBearer
@@ -33,6 +35,7 @@ from pydantic import BaseModel
 import httpx
 # pyrefly: ignore [missing-import]
 import uvicorn
+# pyrefly: ignore [missing-import]
 
 # Config 
 MODE = sys.argv[1] if len(sys.argv) > 1 else "noauth"
@@ -166,16 +169,18 @@ def delete_item(details_id: int, _=Depends(AUTH)):
         return {"deleted": details_id}
 
 @app.head("/details")
-def head_items(): # _=Depends(AUTH)
-    response = Response()
-    response.headers["ETag"] = '"User Details"'
-    response.headers["Content-Type"] = "application/json"
-    response.status_code = 200
-    return response
+def head_items():
+    return res(
+        status_code=200,
+        headers={
+            "ETag": '"User Details"',
+            "Content-Type": "application/json",
+        },
+    )
 
 @app.options("/details")
 def options_items(_=Depends(AUTH)):
-    response = Response()
+    response = res()
     response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
     return response
 
