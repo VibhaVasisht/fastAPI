@@ -166,7 +166,7 @@ def delete_item(details_id: int, _=Depends(AUTH)):
         return {"deleted": details_id}
 
 @app.head("/details")
-def head_items(_=Depends(AUTH)):
+def head_items(): # _=Depends(AUTH)
     response = Response()
     response.headers["ETag"] = '"User Details"'
     response.headers["Content-Type"] = "application/json"
