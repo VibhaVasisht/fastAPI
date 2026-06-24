@@ -169,7 +169,8 @@ def delete_item(details_id: int, _=Depends(AUTH)):
 def head_items(_=Depends(AUTH)):
     response = Response()
     response.headers["ETag"] = "User Details"
-    return response
+    response.status_code = 200
+    return response.end()
 
 @app.options("/details")
 def options_items(_=Depends(AUTH)):
