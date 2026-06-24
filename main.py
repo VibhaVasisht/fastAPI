@@ -168,9 +168,10 @@ def delete_item(details_id: int, _=Depends(AUTH)):
 @app.head("/details")
 def head_items(_=Depends(AUTH)):
     response = Response()
-    response.headers["ETag"] = "User Details"
+    response.headers["ETag"] = '"User Details"'
+    response.headers["Content-Type"] = "application/json"
     response.status_code = 200
-    return response.end()
+    return response
 
 @app.options("/details")
 def options_items(_=Depends(AUTH)):
