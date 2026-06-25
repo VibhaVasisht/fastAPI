@@ -17,12 +17,12 @@ import hmac
 import time
 import urllib.parse
 from contextlib import asynccontextmanager
-from typing import Generator
+from typing import Generator, Annotated, Optional
 # pyrefly: ignore [missing-import]
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 # pyrefly: ignore [missing-import]
 from sqlalchemy.pool import StaticPool         
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request,Form, File, UploadFile
 # pyrefly: ignore [missing-import]
 from fastapi import Response as res
 # pyrefly: ignore [missing-import]
@@ -36,6 +36,7 @@ import httpx
 # pyrefly: ignore [missing-import]
 import uvicorn
 # pyrefly: ignore [missing-import]
+from fastapi.responses import JSONResponse
 
 # Config 
 MODE = sys.argv[1] if len(sys.argv) > 1 else "noauth"
@@ -183,6 +184,31 @@ def options_items(_=Depends(AUTH)):
     response = res()
     response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
     return response
+
+@app.post("/echo-form/")
+async def echo_form(
+    name: Annotated[str, Form(description="name")],
+    email: Annotated[str, Form(description="email")],
+
+):
+    """Accepts multipart/form-data and echoes back all received fields."""
+    result = {
+        "received_fields": {
+            "name": name,
+            "email": email,
+        },
+    }
+
+    return JSONResponse(content=result)
+
+
+@app.post("/echo-text-form/")
+async def echo_text_form(
+    name: Annotated[str, Form()],
+    email: Annotated[str, Form()],
+):
+    # Accepts x-www-form-urlencoded
+    return {"name": name, "email": email}
 
 # OAuth 2 (GitHub)
 
