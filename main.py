@@ -188,14 +188,7 @@ async def echo_form(
 
 ):
     # Echoes back received fields
-    result = {
-        "received_fields": {
-            "name": name,
-            "email": email,
-        },
-    }
-
-    return JSONResponse(content=result)
+    return {"name": name, "email": email}
 
 
 @app.post("/echo-text-form/")
@@ -204,7 +197,13 @@ async def echo_text_form(
     email: Annotated[str, Form()],
 ):
     # Accepts x-www-form-urlencoded/text
-    return {"name": name, "email": email}
+        result = {
+        "received_fields": {
+            "name": name,
+            "email": email,
+        },
+    }
+        return JSONResponse(content=result)
 
 
 @app.get("/echo-headers")
