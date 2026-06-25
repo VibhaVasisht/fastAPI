@@ -203,16 +203,10 @@ async def echo_text_form(
     return {"name": name, "email": email}
 
 
-@app.post("/echo-headers/")
-async def echo_headers(
-    request: Request,
-    x_custom_header: Annotated[Optional[str], Header()] = None,
-):
+@app.get("/echo-headers")
+async def echo_all_headers(request: Request):
     return {
-        "sent": {
-            "x-custom-header": x_custom_header,
-        }
-    }
+        "headers": dict(request.headers)}
 
 # OAuth 2 (GitHub)
 
