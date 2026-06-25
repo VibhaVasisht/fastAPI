@@ -1,11 +1,3 @@
-"""
-modes:
-noauth
-basic
-oauth2
-oauth1
-"""
-
 from requests import status_codes
 from requests import session
 from requests import Response
@@ -22,7 +14,7 @@ from typing import Generator, Annotated, Optional
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 # pyrefly: ignore [missing-import]
 from sqlalchemy.pool import StaticPool         
-from fastapi import FastAPI, HTTPException, Depends, Request,Form, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Header, Request
 # pyrefly: ignore [missing-import]
 from fastapi import Response as res
 # pyrefly: ignore [missing-import]
@@ -191,7 +183,7 @@ async def echo_form(
     email: Annotated[str, Form(description="email")],
 
 ):
-    """Accepts multipart/form-data and echoes back all received fields."""
+    # Echoes back received fields
     result = {
         "received_fields": {
             "name": name,
@@ -207,8 +199,20 @@ async def echo_text_form(
     name: Annotated[str, Form()],
     email: Annotated[str, Form()],
 ):
-    # Accepts x-www-form-urlencoded
+    # Accepts x-www-form-urlencoded/text
     return {"name": name, "email": email}
+
+
+@app.post("/echo-headers/")
+async def echo_headers(
+    request: Request,
+    x_custom_header: Annotated[Optional[str], Header()] = None,
+):
+    return {
+        "sent": {
+            "x-custom-header": x_custom_header,
+        }
+    }
 
 # OAuth 2 (GitHub)
 
