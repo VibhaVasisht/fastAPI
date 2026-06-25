@@ -183,27 +183,36 @@ async def echo_cookies(request: Request):
 
 @app.post("/echo-form/")
 async def echo_form(
+    request: Request,
     name: Annotated[str, Form(description="name")],
     email: Annotated[str, Form(description="email")],
-
 ):
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" not in content_type:
+        raise HTTPException(status_code=415, detail="Expected multipart/form-data")
+    
     # Echoes back received fields
     return {"name": name, "email": email}
 
 
 @app.post("/echo-text-form/")
 async def echo_text_form(
+    request: Request,
     name: Annotated[str, Form()],
     email: Annotated[str, Form()],
 ):
+    content_type = request.headers.get("content-type", "")
+    if "application/x-www-form-urlencoded" not in content_type:
+        raise HTTPException(status_code=415, detail="Expected application/x-www-form-urlencoded")
+    
     # Accepts x-www-form-urlencoded/text
-        result = {
+    result = {  
         "received_fields": {
             "name": name,
             "email": email,
         },
     }
-        return JSONResponse(content=result)
+    return JSONResponse(content=result)
 
 
 @app.get("/echo-headers")
