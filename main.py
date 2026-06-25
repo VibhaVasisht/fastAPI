@@ -14,7 +14,7 @@ from typing import Generator, Annotated, Optional
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 # pyrefly: ignore [missing-import]
 from sqlalchemy.pool import StaticPool         
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Header, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Header
 # pyrefly: ignore [missing-import]
 from fastapi import Response as res
 # pyrefly: ignore [missing-import]
@@ -176,6 +176,10 @@ def options_items(_=Depends(AUTH)):
     response = res()
     response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
     return response
+
+@app.get("/echo-cookies")
+async def echo_cookies(request: Request):
+    return {"cookies": request.cookies}
 
 @app.post("/echo-form/")
 async def echo_form(
