@@ -173,9 +173,7 @@ def head_items():
 
 @app.options("/details")
 def options_items(_=Depends(AUTH)):
-    response = res()
-    response.headers["allow"] = "GET,POST,PUT,DELETE,HEAD,OPTIONS"
-    return response
+    return res(headers={"allow": "GET,POST,PUT,DELETE,HEAD,OPTIONS"})
 
 @app.get("/echo-cookies")
 async def echo_cookies(request: Request):
